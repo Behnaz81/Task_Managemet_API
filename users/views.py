@@ -66,7 +66,17 @@ class SetManager(APIView):
         user = get_object_or_404(CustomUser, id=user_id)
         user.role = 'manager'
         user.save()
-        return Response(status=status.HTTP_200_OK)
+        return Response({'details': 'successfully set to manager'}, status=status.HTTP_200_OK)
+    
+
+class SetTeamLeader(APIView):
+    permission_classes = [IsAdminUser | IsManeger]
+
+    def post(self, request, user_id):
+        user = get_object_or_404(CustomUser, id=user_id)
+        user.role = 'teamleader'
+        user.save()
+        return Response({'details': 'successfully set to team leader'}, status=status.HTTP_200_OK)
     
     
     
