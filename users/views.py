@@ -70,7 +70,7 @@ class SetManager(APIView):
     
 
 class SetTeamLeader(APIView):
-    permission_classes = [IsAdminUser | IsManeger]
+    permission_classes = [IsAdminUser | IsManeger | IsTeamLeader]
 
     def post(self, request, user_id):
         user = get_object_or_404(CustomUser, id=user_id)
