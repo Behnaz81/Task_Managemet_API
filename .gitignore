@@ -1,6 +1,7 @@
 # Created by https://www.gitignore.io
 
-venv/
+venv
+migrations
 
 ### OSX ###
 .DS_Store
