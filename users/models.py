@@ -15,7 +15,7 @@ class CustomUser(AbstractUser):
     )
 
     team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    role = models.CharField(max_length=20, default='teammember',choices=ROLE_CHOICES)
 
 
     
