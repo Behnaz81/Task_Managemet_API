@@ -1,9 +1,11 @@
 from django.contrib.auth import authenticate
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from users.permissions import IsManeger, IsTeamLeader, IsTeamMember
 from drf_yasg.utils import swagger_auto_schema
 from users.serializers import RegisterSerializer, LoginSerializer
 from users.models import CustomUser
@@ -54,3 +56,17 @@ class Logout(APIView):
             return Response({'details': 'Successfully logged out'}, status=status.HTTP_200_OK)
         except (AttributeError, Token.DoesNotExist):
             return Response({'details': 'No token found'}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class SetManager(APIView):
+
+    permission_classes = [IsAdminUser | IsManeger]
+
+    def post(self, request, user_id):
+        user = get_object_or_404(CustomUser, id=user_id)
+        user.role = 'manager'
+        user.save()
+        return Response(status=status.HTTP_200_OK)
+    
+    
+    
