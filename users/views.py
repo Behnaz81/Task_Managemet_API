@@ -115,3 +115,14 @@ class AddMember(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         return Response(status=status.HTTP_400_BAD_REQUEST)
     
+
+class DeleteTeam(APIView):
+    permission_classes = [IsAdminUser | IsManeger]
+
+    def delete(self, request, id):
+        team = get_object_or_404(Team, id=id)
+        if team.created_by == request.user:
+            team.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({'details': "you don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
+    
