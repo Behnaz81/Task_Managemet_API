@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -7,8 +7,11 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from users.permissions import IsManeger, IsTeamLeader, IsTeamMember
 from drf_yasg.utils import swagger_auto_schema
-from users.serializers import RegisterSerializer, LoginSerializer, CreateTeamSerializer, ReadTeamSerializer
-from users.models import CustomUser, Team
+from users.serializers import RegisterSerializer, LoginSerializer, CreateTeamSerializer, ReadTeamSerializer, TeamMemberSerializer
+from users.models import CustomUser, Team, TeamMembers
+
+
+User = get_user_model()
 
 
 class RegisterView(APIView):
@@ -99,4 +102,16 @@ class ListTeam(APIView):
         serializer = ReadTeamSerializer(instance=teams, many=True)
         return Response({'teams': serializer.data}, status=status.HTTP_200_OK)
 
+
+class AddMember(APIView):
+    permission_classes = [IsAdminUser | IsManeger]
+
+    def post(self, request):
+        serializer = TeamMemberSerializer(data=request.data)
+        if serializer.is_valid():
+            if serializer.validated_data['team_id'].created_by == request.user:
+                serializer.save()
+                return Response({'data':serializer.data}, status=status.HTTP_201_CREATED)
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
     
