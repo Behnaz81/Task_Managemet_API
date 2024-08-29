@@ -7,7 +7,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from users.permissions import IsManeger, IsTeamLeader, IsTeamMember
 from drf_yasg.utils import swagger_auto_schema
-from users.serializers import RegisterSerializer, LoginSerializer
+from users.serializers import RegisterSerializer, LoginSerializer, TeamSerializers
 from users.models import CustomUser
 
 
@@ -78,5 +78,16 @@ class SetTeamLeader(APIView):
         user.save()
         return Response({'details': 'successfully set to team leader'}, status=status.HTTP_200_OK)
     
-    
+
+class CreateTeam(APIView):
+    permission_classes = [IsAdminUser | IsManeger]
+
+    def post(self, request):
+        serializer = TeamSerializers(data=request.data)
+        if serializer.is_valid():
+            serializer.validated_data['created_by'] = request.user
+            serializer.save()
+            return Response({'team': serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
     

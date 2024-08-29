@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from users.models import Team
 
 User = get_user_model()
 
@@ -32,8 +33,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-
-
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(required=True, write_only=True)
+
+
+class TeamSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Team
+        fields = ('title', 'created_by')
