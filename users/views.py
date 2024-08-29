@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from users.permissions import IsManeger, IsTeamLeader, IsTeamMember
 from drf_yasg.utils import swagger_auto_schema
 from users.serializers import RegisterSerializer, LoginSerializer, TeamSerializers
-from users.models import CustomUser
+from users.models import CustomUser, Team
 
 
 class RegisterView(APIView):
@@ -89,5 +89,14 @@ class CreateTeam(APIView):
             serializer.save()
             return Response({'team': serializer.data}, status=status.HTTP_201_CREATED)
         return Response(status=status.HTTP_400_BAD_REQUEST)
+    
+
+class ListTeam(APIView):
+    permission_classes = [IsAdminUser | IsManeger]
+
+    def get(self, request):
+        teams = Team.objects.all().filter(created_by=request.user)
+        serializer = TeamSerializers(instance=teams, many=True)
+        return Response({'user': serializer.data}, status=status.HTTP_200_OK)
 
     
