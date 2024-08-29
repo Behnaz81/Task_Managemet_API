@@ -38,7 +38,13 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(required=True, write_only=True)
 
 
-class TeamSerializers(serializers.ModelSerializer):
+class CreateTeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
         fields = ('title', 'created_by')
+
+
+class ReadTeamSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Team
+        fields = ('title',)
