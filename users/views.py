@@ -109,11 +109,18 @@ class AddMember(APIView):
     def post(self, request):
         serializer = TeamMemberSerializer(data=request.data)
         if serializer.is_valid():
-            if serializer.validated_data['team_id'].created_by == request.user:
-                serializer.save()
-                return Response({'data':serializer.data}, status=status.HTTP_201_CREATED)
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+            validated_data = serializer.validated_data
+            if validated_data['team_id'].created_by == request.user:
+                if not validated_data['member_id'].role == 'manager':
+                    if not TeamMembers.objects.filter(member_id=validated_data['member_id']).exists():
+                        if (not validated_data['member_id'].role == 'teamleader' or not TeamMembers.objects.filter(team_id=validated_data['team_id'], member_id__role='teamleader').exists()):                    
+                            serializer.save()
+                            return Response({'data':serializer.data}, status=status.HTTP_201_CREATED)
+                        return Response({'details': 'the team already has a team leader'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'details': 'this user already has a team'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'details': "you can't add managers to teams"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'details': "you don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({'details': "data isn't valid"}, status=status.HTTP_400_BAD_REQUEST)
     
 
 class DeleteTeam(APIView):
@@ -123,6 +130,6 @@ class DeleteTeam(APIView):
         team = get_object_or_404(Team, id=id)
         if team.created_by == request.user:
             team.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({'details': 'Deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
         return Response({'details': "you don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
     
