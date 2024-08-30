@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from users.permissions import IsManeger
-from projects.serializers import CreateProjectSerializer, AssignProjectSerializer
+from projects.serializers import CreateReadProjectSerializer, AssignProjectSerializer
 from projects.models import Project
 
 
@@ -10,7 +10,7 @@ class CreateProjectView(APIView):
     permission_classes = [IsManeger]
 
     def post(self, request):
-        serializer = CreateProjectSerializer(data=request.data)
+        serializer = CreateReadProjectSerializer(data=request.data)
         if serializer.is_valid():
             serializer.validated_data['created_by'] = request.user
             serializer.save()
@@ -34,3 +34,12 @@ class AssignProjectView(APIView):
                 return Response({'details': 'this project is already assigned to another team'}, status=status.HTTP_400_BAD_REQUEST)
             return Response({'details': "you don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ListProjectView(APIView):
+    permission_classes = [IsManeger]
+
+    def get(self, request):
+        projects = Project.objects.filter(created_by=request.user)
+        serializer = CreateReadProjectSerializer(instance=projects, many=True)
+        return Response({'data': serializer.data}, status=status.HTTP_200_OK)
