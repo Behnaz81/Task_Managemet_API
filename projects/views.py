@@ -55,3 +55,14 @@ class DetailsProjectView(APIView):
             serializer = CreateReadProjectSerializer(instance=project)
             return Response({'project': serializer.data}, status=status.HTTP_200_OK)
         return Response({'details': "you don't have access to this project"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+
+class DeleteProjectView(APIView):
+    permission_classes = [IsManeger]
+
+    def delete(self, request, project_id):
+        project = get_object_or_404(Project, id=project_id)
+        if project.created_by == request.user:
+            project.delete()
+            return Response({'details': 'deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+        return Response ({'details': "you don't have access to this project"}, status=status.HTTP_401_UNAUTHORIZED)
