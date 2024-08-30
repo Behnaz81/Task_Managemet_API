@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -43,3 +44,14 @@ class ListProjectView(APIView):
         projects = Project.objects.filter(created_by=request.user)
         serializer = CreateReadProjectSerializer(instance=projects, many=True)
         return Response({'data': serializer.data}, status=status.HTTP_200_OK)
+
+
+class DetailsProjectView(APIView):
+    permission_classes = [IsManeger]
+
+    def get(self, request, project_id):
+        project = get_object_or_404(Project, id=project_id)
+        if project.created_by == request.user:
+            serializer = CreateReadProjectSerializer(instance=project)
+            return Response({'project': serializer.data}, status=status.HTTP_200_OK)
+        return Response({'details': "you don't have access to this project"}, status=status.HTTP_401_UNAUTHORIZED)
