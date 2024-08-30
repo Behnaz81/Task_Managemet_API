@@ -98,9 +98,9 @@ class ListTeam(APIView):
     permission_classes = [IsAdminUser | IsManeger]
 
     def get(self, request):
-        teams = Team.objects.all().filter(created_by=request.user)
-        serializer = ReadTeamSerializer(instance=teams, many=True)
-        return Response({'teams': serializer.data}, status=status.HTTP_200_OK)
+        teams = TeamMembers.objects.filter(team_id__created_by=request.user)
+        serializer = TeamMemberSerializer(instance=teams, many=True)
+        return Response({'details':'data retrieved successfully', 'teams': serializer.data}, status=status.HTTP_200_OK)
 
 
 class AddMember(APIView):
