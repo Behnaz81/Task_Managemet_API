@@ -5,3 +5,10 @@ class CreateProjectSerializer(ModelSerializer):
     class Meta:
         model = Project
         fields = ('title', 'description')
+
+
+class AssignProjectSerializer(ModelSerializer):
+    class Meta:
+        model = Project
+        fields = ('team_id',)
+
