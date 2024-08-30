@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from users.permissions import IsManeger, IsTeamLeader, IsTeamMember
 from drf_yasg.utils import swagger_auto_schema
 from users.serializers import RegisterSerializer, LoginSerializer, CreateTeamSerializer, ReadTeamSerializer, TeamMemberSerializer
-from users.models import CustomUser, Team, TeamMembers
+from users.models import Team, TeamMembers
 
 
 User = get_user_model()
@@ -66,7 +66,7 @@ class SetManager(APIView):
     permission_classes = [IsAdminUser | IsManeger]
 
     def post(self, request, user_id):
-        user = get_object_or_404(CustomUser, id=user_id)
+        user = get_object_or_404(User, id=user_id)
         user.role = 'manager'
         user.save()
         return Response({'details': 'successfully set to manager'}, status=status.HTTP_200_OK)
@@ -76,7 +76,7 @@ class SetTeamLeader(APIView):
     permission_classes = [IsAdminUser | IsManeger | IsTeamLeader]
 
     def post(self, request, user_id):
-        user = get_object_or_404(CustomUser, id=user_id)
+        user = get_object_or_404(User, id=user_id)
         user.role = 'teamleader'
         user.save()
         return Response({'details': 'successfully set to team leader'}, status=status.HTTP_200_OK)
@@ -90,8 +90,8 @@ class CreateTeam(APIView):
         if serializer.is_valid():
             serializer.validated_data['created_by'] = request.user
             serializer.save()
-            return Response({'team': serializer.data}, status=status.HTTP_201_CREATED)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response({'details':'team created successfully', 'team': serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
 class ListTeam(APIView):
@@ -120,7 +120,7 @@ class AddMember(APIView):
                     return Response({'details': 'this user already has a team'}, status=status.HTTP_400_BAD_REQUEST)
                 return Response({'details': "you can't add managers to teams"}, status=status.HTTP_400_BAD_REQUEST)
             return Response({'details': "you don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
-        return Response({'details': "data isn't valid"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
 class DeleteTeam(APIView):
