@@ -5,6 +5,7 @@ from rest_framework import status
 from users.permissions import IsManeger
 from projects.serializers import CreateReadProjectSerializer, AssignProjectSerializer
 from projects.models import Project
+from users.models import TeamMembership
 
 
 class CreateProjectView(APIView):
@@ -24,16 +25,33 @@ class AssignProjectView(APIView):
 
     def post(self, request, id):
         serializer = AssignProjectSerializer(data=request.data)
+
         if serializer.is_valid():
-            validated_data = serializer.validated_data
-            project = Project.objects.get(id=id)
-            if  validated_data['team_id'].created_by == request.user and project.created_by == request.user:
-                if not project.team_id:
-                    project.team_id = validated_data['team_id']
-                    project.save()
-                    return Response({'details': 'project was assigned successfully', 'project': serializer.data}, status=status.HTTP_200_OK)
-                return Response({'details': 'this project is already assigned to another team'}, status=status.HTTP_400_BAD_REQUEST)
-            return Response({'details': "you don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
+            teams_to_assign = serializer.validated_data['team']
+
+            memberships = TeamMembership.objects.filter(user=request.user, role_within_team="manager")
+            user_teams = [membership.team for membership in memberships]
+
+            try:
+                project = Project.objects.get(id=id)
+
+            except Project.DoesNotExist:
+                return Response({'details': "The specified project does not exist."}, status=status.HTTP_404_NOT_FOUND)
+            
+            if not all(team in user_teams for team in teams_to_assign):
+                return Response({'details': "You are not the manager of the selected teams."}, status=status.HTTP_403_FORBIDDEN)
+                
+
+            existing_teams = project.team.all()
+            teams_to_assign = [team for team in teams_to_assign if team not in existing_teams]
+
+            if not teams_to_assign:
+                return Response({"details": "All teams are already participating in this project."}, status=status.HTTP_403_FORBIDDEN)
+            
+            project.team.add(*teams_to_assign)
+            project.save()
+            return Response({'details': 'project was assigned successfully', 'project': serializer.data}, status=status.HTTP_200_OK)
+            
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

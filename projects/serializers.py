@@ -10,5 +10,5 @@ class CreateReadProjectSerializer(ModelSerializer):
 class AssignProjectSerializer(ModelSerializer):
     class Meta:
         model = Project
-        fields = ('team_id',)
+        fields = ('team',)
 
