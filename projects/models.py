@@ -7,7 +7,7 @@ User = get_user_model()
 
 class Project(models.Model):
     title = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField(null=True, blank=True)
     team = models.ManyToManyField(Team)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True)
 
