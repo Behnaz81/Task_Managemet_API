@@ -7,9 +7,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from users.permissions import IsManeger, IsTeamLeader, IsTeamMember
 from drf_yasg.utils import swagger_auto_schema
-from users.serializers import RegisterSerializer, LoginSerializer, CreateTeamSerializer, ReadTeamSerializer, TeamMemberSerializer
-from users.models import Team, TeamMembers
-
+from users.serializers import RegisterSerializer, LoginSerializer, CreateTeamSerializer, ReadTeamSerializer
+from users.models import Team
 
 User = get_user_model()
 
@@ -94,33 +93,33 @@ class CreateTeam(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-class ListTeam(APIView):
-    permission_classes = [IsAdminUser | IsManeger]
+# class ListTeam(APIView):
+#     permission_classes = [IsAdminUser | IsManeger]
 
-    def get(self, request):
-        teams = TeamMembers.objects.filter(team_id__created_by=request.user)
-        serializer = TeamMemberSerializer(instance=teams, many=True)
-        return Response({'details':'data retrieved successfully', 'teams': serializer.data}, status=status.HTTP_200_OK)
+#     def get(self, request):
+#         teams = TeamMembers.objects.filter(team_id__created_by=request.user)
+#         serializer = TeamMemberSerializer(instance=teams, many=True)
+#         return Response({'details':'data retrieved successfully', 'teams': serializer.data}, status=status.HTTP_200_OK)
 
 
-class AddMember(APIView):
-    permission_classes = [IsAdminUser | IsManeger]
+# class AddMember(APIView):
+#     permission_classes = [IsAdminUser | IsManeger]
 
-    def post(self, request):
-        serializer = TeamMemberSerializer(data=request.data)
-        if serializer.is_valid():
-            validated_data = serializer.validated_data
-            if validated_data['team_id'].created_by == request.user:
-                if not validated_data['member_id'].role == 'manager':
-                    if not TeamMembers.objects.filter(member_id=validated_data['member_id']).exists():
-                        if (not validated_data['member_id'].role == 'teamleader' or not TeamMembers.objects.filter(team_id=validated_data['team_id'], member_id__role='teamleader').exists()):                    
-                            serializer.save()
-                            return Response({'data':serializer.data}, status=status.HTTP_201_CREATED)
-                        return Response({'details': 'the team already has a team leader'}, status=status.HTTP_400_BAD_REQUEST)
-                    return Response({'details': 'this user already has a team'}, status=status.HTTP_400_BAD_REQUEST)
-                return Response({'details': "you can't add managers to teams"}, status=status.HTTP_400_BAD_REQUEST)
-            return Response({'details': "you don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#     def post(self, request):
+#         serializer = TeamMemberSerializer(data=request.data)
+#         if serializer.is_valid():
+#             validated_data = serializer.validated_data
+#             if validated_data['team_id'].created_by == request.user:
+#                 if not validated_data['member_id'].role == 'manager':
+#                     if not TeamMembers.objects.filter(member_id=validated_data['member_id']).exists():
+#                         if (not validated_data['member_id'].role == 'teamleader' or not TeamMembers.objects.filter(team_id=validated_data['team_id'], member_id__role='teamleader').exists()):                    
+#                             serializer.save()
+#                             return Response({'data':serializer.data}, status=status.HTTP_201_CREATED)
+#                         return Response({'details': 'the team already has a team leader'}, status=status.HTTP_400_BAD_REQUEST)
+#                     return Response({'details': 'this user already has a team'}, status=status.HTTP_400_BAD_REQUEST)
+#                 return Response({'details': "you can't add managers to teams"}, status=status.HTTP_400_BAD_REQUEST)
+#             return Response({'details': "you don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
 class DeleteTeam(APIView):
