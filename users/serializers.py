@@ -53,3 +53,9 @@ class CreateTeamMembershipSerializer(serializers.ModelSerializer):
 class DeleteTeamMembershipSerializer(serializers.Serializer):
     team = serializers.PrimaryKeyRelatedField(queryset=Team.objects.all())
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+
+class ReadTeamMembershipSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TeamMembership
+        fields = ('id', 'team', 'user', 'joined_at', 'role_within_team')

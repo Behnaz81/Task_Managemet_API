@@ -7,7 +7,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from users.permissions import IsManeger, IsTeamLeader, IsTeamMember
 from drf_yasg.utils import swagger_auto_schema
-from users.serializers import RegisterSerializer, LoginSerializer, TeamSerializer, CreateTeamMembershipSerializer, DeleteTeamMembershipSerializer
+from users.serializers import RegisterSerializer, LoginSerializer, TeamSerializer, CreateTeamMembershipSerializer, DeleteTeamMembershipSerializer, ReadTeamMembershipSerializer
 from users.models import Team, TeamMembership
 
 User = get_user_model()
@@ -178,4 +178,29 @@ class DeleteMember(APIView):
             except TeamMembership.DoesNotExist:
                 return Response({'details': "This member isn't in this team"}, status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class ListMember(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, team_id):
+        memberships = TeamMembership.objects.filter(team=team_id)
+        manager = memberships.filter(role_within_team="manager")
+        teamleader = memberships.filter(role_within_team="teamleader")
+        
+        if memberships.filter(user=request.user).exists():
+            memberships = memberships.exclude(role_within_team="manager").exclude(role_within_team="teamleader")
+            
+            manager_serializer = ReadTeamMembershipSerializer(instance=manager, many=True)
+            teamleader_serializer = ReadTeamMembershipSerializer(instance=teamleader, many=True)
+            members_serializer = ReadTeamMembershipSerializer(instance=memberships, many=True)
+            
+            return Response({"manager": manager_serializer.data, 
+                             "teamleader": teamleader_serializer.data, 
+                             "members": members_serializer.data}, 
+                             status=status.HTTP_200_OK)
+        
+        return Response({"details": "You don't have access to this method"}, 
+                        status=status.HTTP_403_FORBIDDEN)
+        
             
