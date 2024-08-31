@@ -7,7 +7,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from users.permissions import IsManeger, IsTeamLeader, IsTeamMember
 from drf_yasg.utils import swagger_auto_schema
-from users.serializers import RegisterSerializer, LoginSerializer, TeamSerializer, TeamMembershipSerializer
+from users.serializers import RegisterSerializer, LoginSerializer, TeamSerializer, CreateTeamMembershipSerializer, DeleteTeamMembershipSerializer
 from users.models import Team, TeamMembership
 
 User = get_user_model()
@@ -114,7 +114,7 @@ class AddMember(APIView):
     permission_classes = [IsAdminUser | IsManeger]
 
     def post(self, request):
-        serializer = TeamMembershipSerializer(data=request.data)
+        serializer = CreateTeamMembershipSerializer(data=request.data)
         if serializer.is_valid():
             validated_data = serializer.validated_data
             team = validated_data['team']
@@ -157,3 +157,25 @@ class DeleteTeam(APIView):
         
         return Response({'details': "You don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
     
+
+class DeleteMember(APIView):
+    permission_classes = [IsManeger | IsTeamLeader]
+
+    def delete(self, request):
+        serializer = DeleteTeamMembershipSerializer(data=request.data)
+        if serializer.is_valid():
+            team = serializer.validated_data['team']
+            user = serializer.validated_data['user']
+
+            try:
+                TeamMembership.objects.get(team=team, user=request.user)
+            except TeamMembership.DoesNotExist:
+                return Response({'details': "You don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
+            try:
+                membership = TeamMembership.objects.get(team=team, user=user)
+                membership.delete()
+                return Response({'details': 'deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+            except TeamMembership.DoesNotExist:
+                return Response({'details': "This member isn't in this team"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
