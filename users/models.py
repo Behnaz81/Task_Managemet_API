@@ -29,7 +29,6 @@ class TeamMembership(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
     joined_at = models.DateField(auto_now_add=True) 
     role_within_team = models.CharField(max_length=20, choices=ROLE_CHOICES)
-    is_active = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ('user', 'team') 
