@@ -8,5 +8,8 @@ User = get_user_model()
 class Project(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
-    team_id = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True)
+    team = models.ManyToManyField(Team)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True)
+
+    def __str__(self):
+        return self.title
