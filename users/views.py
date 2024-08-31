@@ -1,5 +1,5 @@
 from django.contrib.auth import authenticate, get_user_model
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, get_list_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -7,8 +7,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from users.permissions import IsManeger, IsTeamLeader, IsTeamMember
 from drf_yasg.utils import swagger_auto_schema
-from users.serializers import RegisterSerializer, LoginSerializer, CreateTeamSerializer, ReadTeamSerializer
-from users.models import Team
+from users.serializers import RegisterSerializer, LoginSerializer, TeamSerializer, TeamMembershipSerializer
+from users.models import Team, TeamMembership
 
 User = get_user_model()
 
@@ -66,6 +66,10 @@ class SetManager(APIView):
 
     def post(self, request, user_id):
         user = get_object_or_404(User, id=user_id)
+
+        if not request.user.is_superuser and request.user.role != 'manager':
+            return Response({'details': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        
         user.role = 'manager'
         user.save()
         return Response({'details': 'successfully set to manager'}, status=status.HTTP_200_OK)
@@ -76,6 +80,10 @@ class SetTeamLeader(APIView):
 
     def post(self, request, user_id):
         user = get_object_or_404(User, id=user_id)
+
+        if not request.user.is_superuser and request.user.role not in ['manager', 'teamleader']:
+            return Response({'details': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        
         user.role = 'teamleader'
         user.save()
         return Response({'details': 'successfully set to team leader'}, status=status.HTTP_200_OK)
@@ -85,41 +93,52 @@ class CreateTeam(APIView):
     permission_classes = [IsAdminUser | IsManeger]
 
     def post(self, request):
-        serializer = CreateTeamSerializer(data=request.data)
+        serializer = TeamSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.validated_data['created_by'] = request.user
-            serializer.save()
+            team = serializer.save()
+            team_member = TeamMembership.objects.create(team=team, user=request.user)
             return Response({'details':'team created successfully', 'team': serializer.data}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-# class ListTeam(APIView):
-#     permission_classes = [IsAdminUser | IsManeger]
+class ListTeam(APIView):
 
-#     def get(self, request):
-#         teams = TeamMembers.objects.filter(team_id__created_by=request.user)
-#         serializer = TeamMemberSerializer(instance=teams, many=True)
-#         return Response({'details':'data retrieved successfully', 'teams': serializer.data}, status=status.HTTP_200_OK)
+    def get(self, request):
+        memberships = TeamMembership.objects.filter(user=request.user)
+        teams = [membership.team for membership in memberships]
+        serializer = TeamSerializer(instance=teams, many=True)
+        return Response({'details':'data retrieved successfully', 'teams': serializer.data}, status=status.HTTP_200_OK)
 
 
-# class AddMember(APIView):
-#     permission_classes = [IsAdminUser | IsManeger]
+class AddMember(APIView):
+    permission_classes = [IsAdminUser | IsManeger]
 
-#     def post(self, request):
-#         serializer = TeamMemberSerializer(data=request.data)
-#         if serializer.is_valid():
-#             validated_data = serializer.validated_data
-#             if validated_data['team_id'].created_by == request.user:
-#                 if not validated_data['member_id'].role == 'manager':
-#                     if not TeamMembers.objects.filter(member_id=validated_data['member_id']).exists():
-#                         if (not validated_data['member_id'].role == 'teamleader' or not TeamMembers.objects.filter(team_id=validated_data['team_id'], member_id__role='teamleader').exists()):                    
-#                             serializer.save()
-#                             return Response({'data':serializer.data}, status=status.HTTP_201_CREATED)
-#                         return Response({'details': 'the team already has a team leader'}, status=status.HTTP_400_BAD_REQUEST)
-#                     return Response({'details': 'this user already has a team'}, status=status.HTTP_400_BAD_REQUEST)
-#                 return Response({'details': "you can't add managers to teams"}, status=status.HTTP_400_BAD_REQUEST)
-#             return Response({'details': "you don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request):
+        serializer = TeamMembershipSerializer(data=request.data)
+        if serializer.is_valid():
+            validated_data = serializer.validated_data
+            team = validated_data['team']
+            user_to_add = validated_data['user']
+            
+            try:
+                TeamMembership.objects.get(team=team, user=request.user)
+            except TeamMembership.DoesNotExist:
+                return Response({'details': "You don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            if user_to_add.role == 'manager':
+                return Response({'details': "You can't add managers to teams"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if TeamMembership.objects.filter(user=user_to_add).exists():
+                return Response({'details': 'This user already has a team'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if user_to_add.role == 'teamleader':
+                if TeamMembership.objects.filter(team=team, user__role='teamleader').exists():
+                    return Response({'details': 'The team already has a team leader'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            serializer.save()
+            return Response({'data': serializer.data}, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
 class DeleteTeam(APIView):
@@ -127,8 +146,14 @@ class DeleteTeam(APIView):
 
     def delete(self, request, id):
         team = get_object_or_404(Team, id=id)
-        if team.created_by == request.user:
+        try:
+            team_membership = TeamMembership.objects.get(team=team, user=request.user)
+        except TeamMembership.DoesNotExist:
+            return Response({'details': "You are not a member of this team"}, status=status.HTTP_403_FORBIDDEN)
+
+        if request.user.role == 'manager':
             team.delete()
             return Response({'details': 'Deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
-        return Response({'details': "you don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        return Response({'details': "You don't have access to this method"}, status=status.HTTP_401_UNAUTHORIZED)
     
