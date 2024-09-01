@@ -14,3 +14,8 @@ class CreateTaskSerializer(serializers.ModelSerializer):
 class AssignTaskSerializer(serializers.Serializer):
 
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+
+class CheckAsDoneSerializer(serializers.Serializer):
+
+    is_done = serializers.BooleanField()

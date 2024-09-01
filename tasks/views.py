@@ -1,10 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from users.permissions import IsManeger, IsTeamLeader
 from users.models import TeamMembership
 from projects.models import Project
-from tasks.serializers import CreateTaskSerializer, AssignTaskSerializer
+from tasks.serializers import CreateTaskSerializer, AssignTaskSerializer, CheckAsDoneSerializer
 from tasks.models import Task
 
 
@@ -70,4 +71,23 @@ class AssignTaskView(APIView):
             return Response({'task': serializer.data}, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class CheckAsDoneView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+
+        try:
+            task = Task.objects.get(id=id)
+
+        except Task.DoesNotExist:
+            return Response({"details": "This task doesn't exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        if task.user == request.user:
+            task.is_done = True
+            task.save()
+            return Response(status=status.HTTP_200_OK)
+        
+        return Response({"details": "This task wasn't assign to you"}, status=status.HTTP_403_FORBIDDEN)
         
