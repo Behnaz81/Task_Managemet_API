@@ -1,5 +1,16 @@
 from django.urls import path
-from users.views import RegisterView, LoginView, Logout, SetManager, SetTeamLeader, CreateTeam, DeleteTeam, ListTeam, AddMember, DeleteMember, ListMember
+
+from users.views import (RegisterView, 
+                         LoginView, 
+                         Logout, 
+                         SetManager, 
+                         SetTeamLeader, 
+                         CreateTeam, 
+                         DeleteTeam, 
+                         ListTeam, 
+                         AddMember, 
+                         DeleteMember, 
+                         ListMember)
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
