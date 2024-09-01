@@ -14,8 +14,9 @@ class CreateReadTaskSerializer(serializers.ModelSerializer):
 class AssignTaskSerializer(serializers.Serializer):
 
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    
 
-
-class CheckAsDoneSerializer(serializers.Serializer):
-
-    is_done = serializers.BooleanField()
+class DetailTaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+        fields = ('title', 'description', 'due_date', 'project', 'user')

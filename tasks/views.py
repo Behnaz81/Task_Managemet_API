@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from users.permissions import IsManeger, IsTeamLeader
 from users.models import TeamMembership
 from projects.models import Project
-from tasks.serializers import CreateReadTaskSerializer, AssignTaskSerializer, CheckAsDoneSerializer
+from tasks.serializers import CreateReadTaskSerializer, AssignTaskSerializer, DetailTaskSerializer
 from tasks.models import Task
 
 
@@ -119,7 +119,7 @@ class ListAssignedTeamTasks(APIView):
 
         tasks = Task.objects.filter(project__in=user_projects)
 
-        serializer = CreateReadTaskSerializer(instance=tasks, many=True)
+        serializer = DetailTaskSerializer(instance=tasks, many=True)
 
         return Response({"tasks": serializer.data}, status=status.HTTP_200_OK)
 
