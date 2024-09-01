@@ -123,3 +123,24 @@ class ListAssignedTeamTasksView(APIView):
 
         return Response({"tasks": serializer.data}, status=status.HTTP_200_OK)
 
+
+class DeleteTaskView(APIView):
+    permission_classes = [IsManeger | IsTeamLeader]
+
+    def delete(self, request, id):
+
+        try:
+            task_to_delete = Task.objects.get(id=id)
+
+        except Task.DoesNotExist:
+            return Response({"details": "This task doesn't exist"}, status=status.HTTP_404_NOT_FOUND)
+        
+        user_teams = TeamMembership.objects.filter(user=request.user, role_within_team__in=["manager", "teamleader"]).values_list('team', flat=True)
+
+        user_projects = Project.objects.filter(team__in=user_teams).distinct()
+
+        if task_to_delete.project in user_projects:
+            task_to_delete.delete()
+            return Response({"details": "task was successfully deleted"}, status=status.HTTP_204_NO_CONTENT)
+        
+        return Response({"details": "you don't have access to this task"}, status=status.HTTP_403_FORBIDDEN)
