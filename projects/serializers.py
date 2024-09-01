@@ -12,3 +12,8 @@ class AssignProjectSerializer(ModelSerializer):
         model = Project
         fields = ('team',)
 
+
+class DetailProjectSerializer(ModelSerializer):
+    class Meta:
+        model = Project
+        fields = ("title", "description", "team", "created_by")

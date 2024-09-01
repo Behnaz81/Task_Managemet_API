@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from users.permissions import IsManeger
-from projects.serializers import CreateReadProjectSerializer, AssignProjectSerializer
+from projects.serializers import CreateReadProjectSerializer, AssignProjectSerializer, DetailProjectSerializer
 from projects.models import Project
 from users.models import TeamMembership
 
@@ -69,12 +69,13 @@ class ListProjectView(APIView):
 
 
 class DetailsProjectView(APIView):
-    permission_classes = [IsManeger]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, project_id):
         project = get_object_or_404(Project, id=project_id)
-        if project.created_by == request.user:
-            serializer = CreateReadProjectSerializer(instance=project)
+        user_teams = TeamMembership.objects.filter(user=request.user).values_list('team', flat=True)
+        if project.team.filter(id__in=user_teams).exists():
+            serializer = DetailProjectSerializer(instance=project)
             return Response({'project': serializer.data}, status=status.HTTP_200_OK)
         return Response({'details': "you don't have access to this project"}, status=status.HTTP_401_UNAUTHORIZED)
     
