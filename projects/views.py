@@ -88,4 +88,4 @@ class DeleteProjectView(APIView):
         if project.created_by == request.user:
             project.delete()
             return Response({'details': 'deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
-        return Response ({'details': "you don't have access to this project"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response ({'details': "you don't have access to this project"}, status=status.HTTP_403_FORBIDDEN)
