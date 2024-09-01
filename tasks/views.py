@@ -92,7 +92,7 @@ class CheckAsDoneView(APIView):
         return Response({"details": "This task wasn't assign to you"}, status=status.HTTP_403_FORBIDDEN)
     
 
-class ListAssignedTasks(APIView):
+class ListAssignedTasksView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -108,7 +108,7 @@ class ListAssignedTasks(APIView):
         return Response({"done": tasks_done_serializer.data, "not done": tasks_not_done_serializer.data}, status=status.HTTP_200_OK)
 
 
-class ListAssignedTeamTasks(APIView):
+class ListAssignedTeamTasksView(APIView):
     permission_classes = [IsManeger | IsTeamLeader]
 
     def get(self, request):
