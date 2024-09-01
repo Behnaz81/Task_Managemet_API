@@ -108,4 +108,18 @@ class ListAssignedTasks(APIView):
         return Response({"done": tasks_done_serializer.data, "not done": tasks_not_done_serializer.data}, status=status.HTTP_200_OK)
 
 
+class ListAssignedTeamTasks(APIView):
+    permission_classes = [IsManeger | IsTeamLeader]
+
+    def get(self, request):
+
+        user_teams = TeamMembership.objects.filter(user=request.user, role_within_team__in=["manager", "teamleader"]).values_list('team', flat=True)
+
+        user_projects = Project.objects.filter(team__in=user_teams).distinct()
+
+        tasks = Task.objects.filter(project__in=user_projects)
+
+        serializer = CreateReadTaskSerializer(instance=tasks, many=True)
+
+        return Response({"tasks": serializer.data}, status=status.HTTP_200_OK)
 
