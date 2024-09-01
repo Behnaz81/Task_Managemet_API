@@ -31,7 +31,8 @@ class AssignProjectView(APIView):
             teams_to_assign = serializer.validated_data['team']
 
             memberships = TeamMembership.objects.filter(user=request.user, role_within_team="manager")
-            user_teams = [membership.team for membership in memberships]
+            user_teams = list(memberships.values_list('team', flat=True))
+            print(user_teams)
 
             try:
                 project = Project.objects.get(id=id)
@@ -39,7 +40,7 @@ class AssignProjectView(APIView):
             except Project.DoesNotExist:
                 return Response({'details': "The specified project does not exist."}, status=status.HTTP_404_NOT_FOUND)
             
-            if not all(team in user_teams for team in teams_to_assign):
+            if not all(team.id in user_teams for team in teams_to_assign):
                 return Response({'details': "You are not the manager of the selected teams."}, status=status.HTTP_403_FORBIDDEN)
                 
 
