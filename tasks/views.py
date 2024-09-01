@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from users.permissions import IsManeger, IsTeamLeader
 from users.models import TeamMembership
 from projects.models import Project
-from tasks.serializers import CreateTaskSerializer, AssignTaskSerializer, CheckAsDoneSerializer
+from tasks.serializers import CreateReadTaskSerializer, AssignTaskSerializer, CheckAsDoneSerializer
 from tasks.models import Task
 
 
@@ -13,7 +13,7 @@ class CreateTaskView(APIView):
     permission_classes = [IsTeamLeader | IsManeger]
 
     def post(self, request):
-        serializer = CreateTaskSerializer(data=request.data)
+        serializer = CreateReadTaskSerializer(data=request.data)
 
         if serializer.is_valid():
             user_teams = list(TeamMembership.objects.filter(user=request.user).values_list('team', flat=True))
@@ -90,4 +90,22 @@ class CheckAsDoneView(APIView):
             return Response(status=status.HTTP_200_OK)
         
         return Response({"details": "This task wasn't assign to you"}, status=status.HTTP_403_FORBIDDEN)
-        
+    
+
+class ListAssignedTasks(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        tasks = Task.objects.filter(user=request.user)
+
+        tasks_not_done = tasks.filter(is_done=False)
+        tasks_done = tasks.filter(is_done=True)
+
+        tasks_not_done_serializer = CreateReadTaskSerializer(instance=tasks_not_done, many=True)
+        tasks_done_serializer = CreateReadTaskSerializer(instance=tasks_done, many=True)
+
+        return Response({"done": tasks_done_serializer.data, "not done": tasks_not_done_serializer.data}, status=status.HTTP_200_OK)
+
+
+

@@ -5,7 +5,7 @@ from tasks.models import Task
 User = get_user_model()
 
 
-class CreateTaskSerializer(serializers.ModelSerializer):
+class CreateReadTaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = ('title', 'description', 'due_date', 'project')
