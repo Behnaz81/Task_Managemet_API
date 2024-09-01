@@ -13,5 +13,9 @@ class Task(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     is_done = models.BooleanField(default=False)
 
+
+    class Meta:
+        unique_together = ('title', 'project')
+
     def __str__(self):
         return f"{self.title} - Due to {self.due_date}"
