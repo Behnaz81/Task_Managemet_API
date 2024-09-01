@@ -2,6 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from users.permissions import IsManeger
 from projects.serializers import CreateReadProjectSerializer, AssignProjectSerializer
 from projects.models import Project
@@ -56,10 +57,12 @@ class AssignProjectView(APIView):
 
 
 class ListProjectView(APIView):
-    permission_classes = [IsManeger]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        projects = Project.objects.filter(created_by=request.user)
+        memberships = TeamMembership.objects.filter(user=request.user)
+        teams = memberships.values_list('team', flat=True)
+        projects = Project.objects.filter(team__in=teams).distinct()
         serializer = CreateReadProjectSerializer(instance=projects, many=True)
         return Response({'data': serializer.data}, status=status.HTTP_200_OK)
 
