@@ -4,7 +4,8 @@ from rest_framework import status
 from users.permissions import IsManeger, IsTeamLeader
 from users.models import TeamMembership
 from projects.models import Project
-from tasks.serializers import CreateTaskSerializer
+from tasks.serializers import CreateTaskSerializer, AssignTaskSerializer
+from tasks.models import Task
 
 
 class CreateTaskView(APIView):
@@ -12,7 +13,7 @@ class CreateTaskView(APIView):
 
     def post(self, request):
         serializer = CreateTaskSerializer(data=request.data)
-        
+
         if serializer.is_valid():
             user_teams = list(TeamMembership.objects.filter(user=request.user).values_list('team', flat=True))
             project = serializer.validated_data['project']
@@ -25,3 +26,48 @@ class CreateTaskView(APIView):
             return Response({"task": serializer.data}, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class AssignTaskView(APIView):
+    permission_classes = [IsTeamLeader | IsManeger]
+
+    def post(self, request, id):
+
+        serializer = AssignTaskSerializer(data=request.data)
+
+        try:
+            task = Task.objects.get(id=id)
+
+        except Task.DoesNotExist:
+            return Response({"details":"this task doesn't exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+
+            user_teams = list(TeamMembership.objects.filter(user=request.user).values_list('team', flat=True))
+            project_teams_except_user_teams = task.project.team.filter(id__in=user_teams)
+
+            if task.user is not None:
+                return Response({"details": "this task is already assigned"}, status=status.HTTP_403_FORBIDDEN)
+            
+            if task.is_done:
+                return Response({"details": "This task is already done"}, status=status.HTTP_403_FORBIDDEN)
+
+            if not project_teams_except_user_teams:
+                return Response({"details": "you don't work on this project"}, status=status.HTTP_403_FORBIDDEN)
+            
+            new_user_teams = list(TeamMembership.objects.filter(user=user).values_list('team', flat=True))
+            project_teams_except_new_user_teams = task.project.team.filter(id__in=new_user_teams)
+
+            if not project_teams_except_new_user_teams:
+                return Response({'details': "this user doesn't participate in this project"}, status=status.HTTP_403_FORBIDDEN)
+            
+            if not any(team in new_user_teams for team in user_teams):
+                return Response({"details": "This user is from a different team"}, status=status.HTTP_403_FORBIDDEN)
+
+            task.user = user
+            task.save()
+            return Response({'task': serializer.data}, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
